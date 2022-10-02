@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2022-10-02
+
 ### Added
 
-- Initial release.
+-   Initial release.
 
-[Unreleased]: https://github.com/nbusseneau/pause-unpause-tracker/compare/3d86ec988e59d32659f9e25c2459d89803c63467...HEAD
+[Unreleased]: https://github.com/nbusseneau/pause-unpause-tracker/compare/v0.0.1...HEAD
+
+[0.0.1]: https://github.com/nbusseneau/pause-unpause-tracker/compare/779115751177bf51e9f159c7a8b0f750e3594ee3...v0.0.1
