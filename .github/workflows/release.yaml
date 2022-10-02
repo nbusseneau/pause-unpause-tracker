@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag / Release name (leave empty for dry-run)"
+        required: false
+
+env:
+  changelog: CHANGELOG.md
+  modinfo: modinfo.json
+
+jobs:
+  tag-and-release:
+    name: Rotate changelog, tag, and create release
+    runs-on: ubuntu-latest
+    env:
+      release-notes: release-notes.md
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+
+      - name: Set up Python
+        uses: actions/setup-python@f38219332975fe8f9c04cca981d674bf22aea1d3
+        with:
+          python-version: ${{ env.python-version }}
+
+      - name: Build release notes
+        env:
+          prog: |
+            from pathlib import Path
+            import re
+            regex = re.compile(r'## \[Unreleased\]\s+(?P<notes>.*?)\s+## ', re.DOTALL)
+            changelog = Path('${{ env.changelog }}').read_text()
+            found = regex.search(changelog)
+            if found:
+              print(found.group('notes'))
+        run: |
+          python -c "${{ env.prog }}" > ${{ env.release-notes }}
+
+      - name: Rotate unreleased section in changelog
+        if: github.event.inputs.tag
+        uses: thomaseizinger/keep-a-changelog-new-release@5bc232893483441c5d6cd6c9dcb1e48abf9a2bae
+        with:
+          tag: ${{ github.event.inputs.tag }}
+
+      - name: Rotate version in modinfo.json
+        if: github.event.inputs.tag
+        run: |
+          TAG=${{ github.event.inputs.tag }}
+          TAG_WITHOUT_V=${TAG:1}
+          sed -i 's/"version": ".*"/"version": "${{ github.event.inputs.tag }}"/' ${{ env.modinfo }}
+
+      - name: Push updated changelog and files to repository
+        if: github.event.inputs.tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.changelog }} ${{ env.config }}
+          git commit --message "Release ${{ github.event.inputs.tag }}"
+          git push origin HEAD:main
+
+      - name: Tag
+        if: github.event.inputs.tag
+        run: |
+          git tag ${{ github.event.inputs.tag }}
+          git push origin --tags
+
+      - name: Create release
+        if: github.event.inputs.tag
+        id: release
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
+        with:
+          release_name: ${{ github.event.inputs.tag }}
+          tag_name: ${{ github.event.inputs.tag }}
+          body_path: ${{ env.release-notes }}
+          commitish: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  archive-and-upload-artifacts:
+    name: Archive and upload artifacts
+    needs: tag-and-release
+    runs-on: ubuntu-latest
+    env:
+      artifacts-name: pause-unpause-tracker.zip
+      artifacts-content-type: application/zip
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
+        with:
+          ref: ${{ github.event.inputs.tag || github.sha }}
+
+      - name: Consolidate artifacts in a zip
+        run: |
+          git archive ${{ github.event.inputs.tag || github.sha }} -o ${{ env.artifacts-name }}
+
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
+        with:
+          name: ${{ env.artifacts-name }}
+          path: ${{ env.artifacts-name }}
+          retention-days: 1
+
+      - name: Upload artifacts to release
+        if: needs.tag-and-release.outputs.upload_url
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
+        with:
+          upload_url: ${{ needs.tag-and-release.outputs.upload_url }}
+          asset_path: ${{ env.artifacts-name }}
+          asset_name: ${{ env.artifacts-name }}
+          asset_content_type: ${{ env.artifacts-content-type }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
