@@ -1,0 +1,23 @@
+{
+  "author": "nbusseneau",
+  "build": "116242",
+  "category": ["classic", "titans", "ui", "chat"],
+  "context": "server",
+  "date": "2022-10-02",
+  "description": "Tracks who pauses/unpauses the game by sending ingame All Chat messages.",
+  "display_name": "Pause/Unpause Tracker",
+  "forum": "https://forums.planetaryannihilation.com/threads/server-pause-unpause-tracker.73591/",
+  "github": "https://github.com/nbusseneau/pause-unpause-tracker",
+  "icon": "https://user-images.githubusercontent.com/4659919/193474146-c584f544-6f1e-4572-86cb-2f4f29cc0eaf.png",
+  "identifier": "com.github.nbusseneau.pause-unpause-tracker",
+  "scenes": {
+    "live_game_chat": [
+      "coui://ui/mods/com.github.nbusseneau.pause-unpause-tracker/live_game_chat.js"
+    ],
+    "live_game": [
+      "coui://ui/mods/com.github.nbusseneau.pause-unpause-tracker/live_game.js"
+    ]
+  },
+  "signature": "looks like this is mandatory but not actually implemented",
+  "version": "0.0.1"
+}
